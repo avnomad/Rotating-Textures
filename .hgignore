@@ -1,0 +1,9 @@
+syntax: regexp
+Debug/*
+Release/*
+ipch/*
+syntax: glob
+Rotating Textures.opensdf
+Rotating Textures.sdf
+Rotating Textures.suo
+Rotating Textures/Rotating Textures.aps
