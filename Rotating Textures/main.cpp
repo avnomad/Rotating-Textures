@@ -40,7 +40,7 @@ int main()
 	UpdateWindow(window);
 
 	MSG message;
-	while(GetMessage(&message,nullptr,0,0));
+	while(GetMessage(&message,nullptr,0,0))
 	{
 		TranslateMessage(&message);
 		DispatchMessage(&message);
@@ -49,10 +49,19 @@ int main()
 	return message.wParam;
 } // end function main
 
+
 LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM argL)
 {
+	PAINTSTRUCT ps;
+
 	switch(message)
 	{
+	case WM_PAINT:
+		BeginPaint(window,&ps);
+		EndPaint(window,&ps);
+		return 0;
+	case WM_ERASEBKGND:
+		return 1;
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		return 0;
