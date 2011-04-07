@@ -16,6 +16,8 @@ using std::exit;
 #include <windows.h>
 #include <tchar.h>
 
+#include "resource.h"
+
 LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM argL);
 
 int main()
@@ -26,15 +28,15 @@ int main()
 	soleWindowClass.cbClsExtra = 0;
 	soleWindowClass.cbWndExtra = 0;
 	soleWindowClass.hInstance = GetModuleHandle(nullptr);
-	soleWindowClass.hIcon = LoadIcon(GetModuleHandle(nullptr),_T("rotating_textures_icon"));	// can be null
+	soleWindowClass.hIcon = LoadIcon(GetModuleHandle(nullptr),_T("RotatingTexturesIcon"));	// can be null
 	soleWindowClass.hCursor = LoadCursor(nullptr,IDC_ARROW);	// can be null
 	soleWindowClass.hbrBackground = nullptr;
-	soleWindowClass.lpszMenuName = nullptr /*_T("rotating textures menu")*/;
-	soleWindowClass.lpszClassName = _T("rotating textures class");
+	soleWindowClass.lpszMenuName = _T("RotatingTexturesMenu");
+	soleWindowClass.lpszClassName = _T("RotatingTexturesClass");
 	RegisterClass(&soleWindowClass);
 
-	HWND window = CreateWindow(_T("rotating textures class"),_T("Rotating Textures"),WS_OVERLAPPEDWINDOW,
-						320,120,640,480,nullptr,nullptr,GetModuleHandle(nullptr),nullptr);
+	HWND window = CreateWindow(_T("RotatingTexturesClass"),_T("Rotating Textures"),WS_OVERLAPPEDWINDOW,
+									320,120,640,480,nullptr,nullptr,GetModuleHandle(nullptr),nullptr);
 
 	ShowWindow(window,SW_SHOWNORMAL);
 	UpdateWindow(window);
@@ -59,6 +61,10 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 	case WM_PAINT:
 		BeginPaint(window,&ps);
 		EndPaint(window,&ps);
+		return 0;
+	case WM_COMMAND:
+		if(LOWORD(argW) == IDM_FILE_OPEN)
+			MessageBeep(0);
 		return 0;
 	case WM_ERASEBKGND:
 		return 1;
