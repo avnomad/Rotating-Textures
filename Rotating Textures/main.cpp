@@ -98,29 +98,6 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 		glewInit();
 
 		glClearColor(1,1,0.941,1);	// ivory
-
-		ZeroMemory(&pixelFormatDescription,sizeof(PIXELFORMATDESCRIPTOR));
-		pixelFormatDescription.nSize = sizeof(PIXELFORMATDESCRIPTOR);
-		pixelFormatDescription.nVersion = 1;
-		pixelFormatDescription.dwFlags = PFD_DRAW_TO_BITMAP|PFD_SUPPORT_OPENGL|PFD_STEREO_DONTCARE;
-		pixelFormatDescription.iPixelType = PFD_TYPE_RGBA;
-		pixelFormatDescription.cColorBits = 64;
-		pixelFormatDescription.cAlphaBits = 16;
-		pixelFormatDescription.cAccumBits = 128;
-		pixelFormatDescription.cDepthBits = 64;
-		pixelFormatDescription.cStencilBits = 32;
-		pixelFormatDescription.cAuxBuffers = 128;
-		pixelFormatDescription.iLayerType = PFD_MAIN_PLANE;
-
-		gdiMemContext = CreateCompatibleDC(windowSurface);
-		pixelFormatIndex = ChoosePixelFormat(gdiMemContext,&pixelFormatDescription);
-		SetPixelFormat(gdiMemContext,pixelFormatIndex,&pixelFormatDescription);
-		glMemContext = wglCreateContext(gdiMemContext);
-		wglMakeCurrent(gdiMemContext,glMemContext);
-
-		glClearColor(1,1,0.941,1);	// ivory
-
-		wglMakeCurrent(windowSurface,glContext);
 		return 0;
 	case WM_SIZE:
 		GetClientRect(window,&r);
@@ -152,20 +129,39 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 			return 0;
 		case IDM_EDIT_COPY:
 			GetClientRect(window,&r);
-			gdiBitmap = CreateCompatibleBitmap(gdiMemContext,r.right,r.bottom);
+			gdiBitmap = CreateCompatibleBitmap(windowSurface,r.right,r.bottom);
+			ZeroMemory(&pixelFormatDescription,sizeof(PIXELFORMATDESCRIPTOR));
+			pixelFormatDescription.nSize = sizeof(PIXELFORMATDESCRIPTOR);
+			pixelFormatDescription.nVersion = 1;
+			pixelFormatDescription.dwFlags = PFD_DRAW_TO_BITMAP|PFD_SUPPORT_OPENGL|PFD_STEREO_DONTCARE;
+			pixelFormatDescription.iPixelType = PFD_TYPE_RGBA;
+			pixelFormatDescription.cColorBits = 32;
+			pixelFormatDescription.cAlphaBits = 8;
+			pixelFormatDescription.cAccumBits = 0;
+			pixelFormatDescription.cDepthBits = 0;
+			pixelFormatDescription.cStencilBits = 0;
+			pixelFormatDescription.cAuxBuffers = 0;
+			pixelFormatDescription.iLayerType = PFD_MAIN_PLANE;
+
+			gdiMemContext = CreateCompatibleDC(windowSurface);
 			gdiBitmap = (HBITMAP)SelectObject(gdiMemContext,gdiBitmap);
-				wglMakeCurrent(gdiMemContext,glMemContext);
-					glViewport(0,0,r.right,r.bottom);
-					display();
-					//SwapBuffers(gdiMemContext);
-				wglMakeCurrent(windowSurface,glContext);
-				//BitBlt(gdiMemContext,0,0,r.right,r.bottom,windowSurface,0,0,SRCCOPY);
+			pixelFormatIndex = ChoosePixelFormat(gdiMemContext,&pixelFormatDescription);
+			SetPixelFormat(gdiMemContext,pixelFormatIndex,&pixelFormatDescription);
+			glMemContext = wglCreateContext(gdiMemContext);
+			wglMakeCurrent(gdiMemContext,glMemContext);
+
+			glClearColor(1,1,0.941,1);	// ivory
+			glViewport(0,0,r.right,r.bottom);
+			display();
+			glFinish();	// essential!
 			gdiBitmap = (HBITMAP)SelectObject(gdiMemContext,gdiBitmap);
 
 			OpenClipboard(window);
 			EmptyClipboard();
 				SetClipboardData(CF_BITMAP,gdiBitmap);
 			CloseClipboard();
+
+			wglMakeCurrent(windowSurface,glContext);
 			return 0;
 		} // end switch
 		return 0;
