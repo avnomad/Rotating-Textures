@@ -186,7 +186,7 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 						ZeroMemory(&pixelFormatDescription,sizeof(PIXELFORMATDESCRIPTOR));
 						pixelFormatDescription.nSize = sizeof(PIXELFORMATDESCRIPTOR);
 						pixelFormatDescription.nVersion = 1;
-						pixelFormatDescription.dwFlags = PFD_DRAW_TO_BITMAP|PFD_SUPPORT_OPENGL|PFD_STEREO_DONTCARE;
+						pixelFormatDescription.dwFlags = PFD_SUPPORT_OPENGL|PFD_STEREO_DONTCARE;
 						pixelFormatDescription.iPixelType = PFD_TYPE_RGBA;
 						pixelFormatDescription.cColorBits = 32;
 						pixelFormatDescription.cAlphaBits = 8;
@@ -202,6 +202,9 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 						StartPage(gdiPrinterDC);
 							glPrinterContext = wglCreateContext(gdiPrinterDC);
 							wglMakeCurrent(gdiPrinterDC,glPrinterContext);
+
+							SelectObject(gdiPrinterDC,GetStockObject(GRAY_BRUSH));
+							Rectangle(gdiPrinterDC,0,0,640,640);
 
 							glClearColor(1,1,0.941,1);	// ivory
 							glViewport(0,0,GetDeviceCaps(gdiPrinterDC,HORZRES),GetDeviceCaps(gdiPrinterDC,VERTRES));
