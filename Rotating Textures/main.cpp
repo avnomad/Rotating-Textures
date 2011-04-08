@@ -181,12 +181,12 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 				EnumPrinters(PRINTER_ENUM_LOCAL,nullptr,4,printers,requiredSize,&requiredSize,&nPrinters);	// get printers list.
 				for(unsigned long i = 0 ; i < 1/*nPrinters*/ ; ++i)
 				{
-					cout << setw(4) << ' ' << "OpenGL context for " << ((PRINTER_INFO_4*)printers)[i].pPrinterName << ".\n";
-					gdiPrinterDC = CreateDC(nullptr,((PRINTER_INFO_4*)printers)[i].pPrinterName,nullptr,nullptr);
+					gdiPrinterDC = CreateDC(nullptr,((PRINTER_INFO_4*)printers)[i].pPrinterName,nullptr,nullptr);					
+						gdiBitmap = CreateCompatibleBitmap(gdiPrinterDC,GetDeviceCaps(gdiPrinterDC,HORZRES),GetDeviceCaps(gdiPrinterDC,VERTRES));
 						ZeroMemory(&pixelFormatDescription,sizeof(PIXELFORMATDESCRIPTOR));
 						pixelFormatDescription.nSize = sizeof(PIXELFORMATDESCRIPTOR);
 						pixelFormatDescription.nVersion = 1;
-						pixelFormatDescription.dwFlags = PFD_SUPPORT_OPENGL|PFD_STEREO_DONTCARE;
+						pixelFormatDescription.dwFlags = PFD_DRAW_TO_BITMAP|PFD_SUPPORT_OPENGL|PFD_STEREO_DONTCARE;
 						pixelFormatDescription.iPixelType = PFD_TYPE_RGBA;
 						pixelFormatDescription.cColorBits = 32;
 						pixelFormatDescription.cAlphaBits = 8;
@@ -196,24 +196,28 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 						pixelFormatDescription.cAuxBuffers = 0;
 						pixelFormatDescription.iLayerType = PFD_MAIN_PLANE;
 
-						pixelFormatIndex = ChoosePixelFormat(gdiPrinterDC,&pixelFormatDescription);
-						SetPixelFormat(gdiPrinterDC,pixelFormatIndex,&pixelFormatDescription);
+						gdiMemContext = CreateCompatibleDC(gdiPrinterDC);
+						gdiBitmap = (HBITMAP)SelectObject(gdiMemContext,gdiBitmap);
+						pixelFormatIndex = ChoosePixelFormat(gdiMemContext,&pixelFormatDescription);
+						SetPixelFormat(gdiMemContext,pixelFormatIndex,&pixelFormatDescription);
+
 						StartDoc(gdiPrinterDC,&di);
 						StartPage(gdiPrinterDC);
-							glPrinterContext = wglCreateContext(gdiPrinterDC);
-							wglMakeCurrent(gdiPrinterDC,glPrinterContext);
-
-							SelectObject(gdiPrinterDC,GetStockObject(GRAY_BRUSH));
-							Rectangle(gdiPrinterDC,0,0,640,640);
+							glMemContext = wglCreateContext(gdiMemContext);
+							wglMakeCurrent(gdiMemContext,glMemContext);
 
 							glClearColor(1,1,0.941,1);	// ivory
 							glViewport(0,0,GetDeviceCaps(gdiPrinterDC,HORZRES),GetDeviceCaps(gdiPrinterDC,VERTRES));
 							display();
 							glFinish();	// essential!
+
+							BitBlt(gdiPrinterDC,0,0,GetDeviceCaps(gdiPrinterDC,HORZRES),GetDeviceCaps(gdiPrinterDC,VERTRES),gdiMemContext,0,0,SRCCOPY);
 						EndPage(gdiPrinterDC);
 						EndDoc(gdiPrinterDC);
+						gdiBitmap = (HBITMAP)SelectObject(gdiMemContext,gdiBitmap);
 					wglMakeCurrent(windowSurface,glContext);
-					wglDeleteContext(glPrinterContext);
+					wglDeleteContext(glMemContext);
+					DeleteDC(gdiMemContext);
 					DeleteDC(gdiPrinterDC);
 				} // end for
 			delete[] printers;
