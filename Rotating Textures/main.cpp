@@ -5,6 +5,11 @@ using std::endl;
 using std::cerr;
 using std::clog;
 using std::left;
+using std::right;
+
+#include <iomanip>
+using std::setw;
+using std::setprecision;
 
 #include <cstdlib>
 using std::system;
@@ -23,23 +28,28 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 int main()
 {
 	WNDCLASS soleWindowClass;
-	soleWindowClass.style = CS_HREDRAW|CS_VREDRAW;
+	soleWindowClass.style = CS_HREDRAW|CS_VREDRAW|CS_OWNDC;
 	soleWindowClass.lpfnWndProc = soleWindowProcedure;
 	soleWindowClass.cbClsExtra = 0;
 	soleWindowClass.cbWndExtra = 0;
 	soleWindowClass.hInstance = GetModuleHandle(nullptr);
 	soleWindowClass.hIcon = LoadIcon(GetModuleHandle(nullptr),_T("RotatingTexturesIcon"));	// can be null
-	soleWindowClass.hCursor = LoadCursor(nullptr,IDC_ARROW);	// can be null
+	soleWindowClass.hCursor = LoadCursor(GetModuleHandle(nullptr),MAKEINTRESOURCE(IDC_CROSSHAIR));	// can be null
 	soleWindowClass.hbrBackground = nullptr;
 	soleWindowClass.lpszMenuName = _T("RotatingTexturesMenu");
 	soleWindowClass.lpszClassName = _T("RotatingTexturesClass");
 	RegisterClass(&soleWindowClass);
 
-	HWND window = CreateWindow(_T("RotatingTexturesClass"),_T("Rotating Textures"),WS_OVERLAPPEDWINDOW,
-									320,120,640,480,nullptr,nullptr,GetModuleHandle(nullptr),nullptr);
+	HWND window = CreateWindow(_T("RotatingTexturesClass"),_T("Rotating Textures"),WS_OVERLAPPEDWINDOW|WS_CLIPCHILDREN
+									|WS_CLIPSIBLINGS,320,120,640,480,nullptr,nullptr,GetModuleHandle(nullptr),nullptr);
 
 	ShowWindow(window,SW_SHOWNORMAL);
 	UpdateWindow(window);
+
+	HMENU sysMenu = GetSystemMenu(window,FALSE);
+	AppendMenu(sysMenu,MF_SEPARATOR,0,nullptr);
+	AppendMenu(sysMenu,MF_STRING,IDM_FILE_OPEN,_T("&Open..."));
+	AppendMenu(sysMenu,MF_STRING,IDM_SYS_BEEP,"&Beep");
 
 	MSG message;
 	while(GetMessage(&message,nullptr,0,0))
@@ -54,23 +64,100 @@ int main()
 
 LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM argL)
 {
-	PAINTSTRUCT ps;
+	static PIXELFORMATDESCRIPTOR pixelFormatDescription = {0};
+	static HDC windowSurface;
+	static HGLRC glContext;
+	static float angle = 0; // in degrees
+	int pixelFormatIndex;
+	RECT r;
 
 	switch(message)
 	{
-	case WM_PAINT:
-		BeginPaint(window,&ps);
-		EndPaint(window,&ps);
+	case WM_CREATE:
+		pixelFormatDescription.nSize = sizeof(PIXELFORMATDESCRIPTOR);
+		pixelFormatDescription.nVersion = 1;
+		pixelFormatDescription.dwFlags = PFD_DRAW_TO_WINDOW|PFD_SUPPORT_OPENGL|PFD_DOUBLEBUFFER|PFD_STEREO_DONTCARE;
+		pixelFormatDescription.iPixelType = PFD_TYPE_RGBA;
+		pixelFormatDescription.cColorBits = 64;
+		pixelFormatDescription.cAlphaBits = 16;
+		pixelFormatDescription.cAccumBits = 128;
+		pixelFormatDescription.cDepthBits = 64;
+		pixelFormatDescription.cStencilBits = 32;
+		pixelFormatDescription.cAuxBuffers = 128;
+		pixelFormatDescription.iLayerType = PFD_MAIN_PLANE;
+
+		windowSurface = GetDC(window);
+		pixelFormatIndex = ChoosePixelFormat(windowSurface,&pixelFormatDescription);
+		SetPixelFormat(windowSurface,pixelFormatIndex,&pixelFormatDescription);
+		glContext = wglCreateContext(windowSurface);
+		wglMakeCurrent(windowSurface,glContext);
+		glewInit();
+
+		glClearColor(1,1,0.941,1);	// ivory
 		return 0;
-	case WM_COMMAND:
-		if(LOWORD(argW) == IDM_FILE_OPEN)
+	case WM_SIZE:
+		GetClientRect(window,&r);
+		glViewport(0,0,r.right,r.bottom);
+		return 0;
+	case WM_PAINT:
+		glClear(GL_COLOR_BUFFER_BIT);
+			glColor3f(1,0,0);	// red
+			glLoadIdentity();
+			glTranslatef(0.5,0.5,0);
+			glRotatef(angle,0,0,1);
+			glRectf(-1.0/3,-1.0/3,1.0/3,1.0/3);
+
+			glColor3f(0,1,0);	// green
+			glLoadIdentity();
+			glTranslatef(-0.5,0.5,0);
+			glRotatef(angle,0,0,1);
+			glRectf(-1.0/3,-1.0/3,1.0/3,1.0/3);
+
+			glColor3f(0,0,1);	// blue
+			glLoadIdentity();
+			glTranslatef(-0.5,-0.5,0);
+			glRotatef(angle,0,0,1);
+			glRectf(-1.0/3,-1.0/3,1.0/3,1.0/3);
+
+			glColor3f(1,1,0);	// yellow
+			glLoadIdentity();
+			glTranslatef(0.5,-0.5,0);
+			glRotatef(angle,0,0,1);
+			glRectf(-1.0/3,-1.0/3,1.0/3,1.0/3);
+
+			glPopMatrix();
+			angle += 1.5;
+		SwapBuffers(windowSurface);
+		ValidateRect(window,nullptr);
+		InvalidateRect(window,nullptr,FALSE);
+		return 0;
+	case WM_SYSCOMMAND:
+		switch(LOWORD(argW))
+		{
+		case IDM_SYS_BEEP:
 			MessageBeep(0);
+			return 0;
+		case IDM_FILE_OPEN:
+			SendMessage(window,WM_COMMAND,MAKEWPARAM(IDM_FILE_OPEN,0),0);
+			return 0;
+		} // end switch
+		break;
+	case WM_COMMAND:
+		switch(LOWORD(argW))
+		{
+		case IDM_FILE_OPEN:
+			MessageBeep(0);
+			return 0;
+		} // end switch
 		return 0;
 	case WM_ERASEBKGND:
 		return 1;
 	case WM_DESTROY:
+		wglDeleteContext(glContext);
+		//ReleaseDC(window,windowSurface);
 		PostQuitMessage(0);
 		return 0;
 	} // end switch
 	return DefWindowProc(window,message,argW,argL);
 } // end function soleWindowProcedure
+

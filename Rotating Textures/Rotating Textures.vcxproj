@@ -70,6 +70,7 @@
     <ResourceCompile Include="Rotating Textures.rc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="crosshair.cur" />
     <None Include="icon.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
