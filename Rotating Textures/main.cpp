@@ -15,16 +15,31 @@ using std::setprecision;
 using std::system;
 using std::exit;
 
+#include <string>
+using std::string;
+using std::wstring;
+using std::getline;
+
 #include <GL/glew.h>
 #include <GL/glut.h>
 
 #include <windows.h>
+#include <WindowsX.h>
 #include <WinSpool.h>
+#include <CommDlg.h>
 #include <tchar.h>
+
+#ifdef UNICODE
+typedef wstring tstring;
+#else
+typedef string tstring;
+#endif
 
 #include "resource.h"
 
 LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM argL);
+
+tstring windowTitle = _T("Rotating Textures");
 
 int main()
 {
@@ -41,7 +56,7 @@ int main()
 	soleWindowClass.lpszClassName = _T("RotatingTexturesClass");
 	RegisterClass(&soleWindowClass);
 
-	HWND window = CreateWindow(_T("RotatingTexturesClass"),_T("Rotating Textures"),WS_OVERLAPPEDWINDOW|WS_CLIPCHILDREN
+	HWND window = CreateWindow(_T("RotatingTexturesClass"),_T("Rotating Textures"),WS_POPUP|WS_THICKFRAME|WS_CLIPCHILDREN
 									|WS_CLIPSIBLINGS,320,120,640,480,nullptr,nullptr,GetModuleHandle(nullptr),nullptr);
 
 	ShowWindow(window,SW_SHOWNORMAL);
@@ -50,7 +65,7 @@ int main()
 	HMENU sysMenu = GetSystemMenu(window,FALSE);
 	AppendMenu(sysMenu,MF_SEPARATOR,0,nullptr);
 	AppendMenu(sysMenu,MF_STRING,IDM_FILE_OPEN,_T("&Open..."));
-	AppendMenu(sysMenu,MF_STRING,IDM_SYS_BEEP,"&Beep");
+	AppendMenu(sysMenu,MF_STRING,IDM_SYS_BEEP,_T("&Beep"));
 
 	MSG message;
 	while(GetMessage(&message,nullptr,0,0))
@@ -75,10 +90,41 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 	HBITMAP gdiBitmap;
 	static HDC gdiMemContext;
 	static HGLRC glMemContext;
+	static OPENFILENAME ofn;
+	static const DWORD maxFileNameAndPathSize = 512;
+	static TCHAR fileNameAndPath[maxFileNameAndPathSize] = _T("");	// can put the path of a default file to load here.
+	static const DWORD maxFileNameSize = 128;		// but shouldn't include hardcoded private paths to public repositories! :)
+	static TCHAR fileName[maxFileNameSize];
+	static POINT oldMousePosition;
+	POINT mousePosition;
 
 	switch(message)
 	{
 	case WM_CREATE:
+		ofn.lStructSize = sizeof(OPENFILENAME);
+		ofn.hwndOwner = window;
+		ofn.hInstance = nullptr;
+		ofn.lpstrFilter = _T("Bitmap files (*.bmp)\0*.bmp\0All files (*.*)\0*.*\0\0");
+		ofn.lpstrCustomFilter = nullptr;
+		ofn.nMaxCustFilter = 0;
+		ofn.nFilterIndex = 1;
+		ofn.lpstrFile = fileNameAndPath;
+		ofn.nMaxFile = maxFileNameAndPathSize;
+		ofn.lpstrFileTitle = fileName;
+		ofn.nMaxFileTitle = maxFileNameSize;
+		ofn.lpstrInitialDir = nullptr;
+		ofn.lpstrTitle = _T("Open a bitmap file for use as a texture.");
+		ofn.Flags = OFN_FILEMUSTEXIST|OFN_PATHMUSTEXIST;
+		ofn.nFileOffset = 0;
+		ofn.nFileExtension = 0;
+		ofn.lpstrDefExt = _T("bmp");
+		ofn.lCustData = 0;
+		ofn.lpfnHook = nullptr;
+		ofn.lpTemplateName = nullptr;
+		ofn.pvReserved = nullptr;
+		ofn.dwReserved = 0;
+		ofn.FlagsEx = 0;
+
 		pixelFormatDescription.nSize = sizeof(PIXELFORMATDESCRIPTOR);
 		pixelFormatDescription.nVersion = 1;
 		pixelFormatDescription.dwFlags = PFD_DRAW_TO_WINDOW|PFD_SUPPORT_OPENGL|PFD_DOUBLEBUFFER|PFD_STEREO_DONTCARE;
@@ -103,6 +149,22 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 	case WM_SIZE:
 		GetClientRect(window,&r);
 		glViewport(0,0,r.right,r.bottom);
+		return 0;
+	case WM_LBUTTONDOWN:
+		GetCursorPos(&oldMousePosition);
+		SetCapture(window);
+		return 0;
+	case WM_MOUSEMOVE:
+		if(window == GetCapture())
+		{
+			GetWindowRect(window,&r);
+			GetCursorPos(&mousePosition);
+			MoveWindow(window,mousePosition.x-oldMousePosition.x+r.left,mousePosition.y-oldMousePosition.y+r.top,r.right-r.left,r.bottom-r.top,FALSE);
+			oldMousePosition = mousePosition;
+		} // end if
+		return 0;
+	case WM_LBUTTONUP:
+		ReleaseCapture();
 		return 0;
 	case WM_PAINT:
 		display();
@@ -133,7 +195,8 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 		switch(LOWORD(argW))
 		{
 		case IDM_FILE_OPEN:
-			MessageBeep(0);
+			GetOpenFileName(&ofn);
+			SetWindowText(window,(windowTitle+_T(" - ")+ofn.lpstrFileTitle).c_str());
 			return 0;
 		case IDM_EDIT_COPY:
 			GetClientRect(window,&r);
