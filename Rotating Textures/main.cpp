@@ -68,7 +68,7 @@ float angle = 0; // in degrees
 LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM argL)
 {
 	static PIXELFORMATDESCRIPTOR pixelFormatDescription = {0};
-	static HDC windowSurface;
+	static HDC gdiContext;
 	static HGLRC glContext;
 	int pixelFormatIndex;
 	RECT r;
@@ -91,11 +91,11 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 		pixelFormatDescription.cAuxBuffers = 128;
 		pixelFormatDescription.iLayerType = PFD_MAIN_PLANE;
 
-		windowSurface = GetDC(window);
-		pixelFormatIndex = ChoosePixelFormat(windowSurface,&pixelFormatDescription);
-		SetPixelFormat(windowSurface,pixelFormatIndex,&pixelFormatDescription);
-		glContext = wglCreateContext(windowSurface);
-		wglMakeCurrent(windowSurface,glContext);
+		gdiContext = GetDC(window);
+		pixelFormatIndex = ChoosePixelFormat(gdiContext,&pixelFormatDescription);
+		SetPixelFormat(gdiContext,pixelFormatIndex,&pixelFormatDescription);
+		glContext = wglCreateContext(gdiContext);
+		wglMakeCurrent(gdiContext,glContext);
 		glewInit();
 
 		glClearColor(1,1,0.941,1);	// ivory
@@ -107,7 +107,7 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 	case WM_PAINT:
 		display();
 		angle += 1.5;
-		SwapBuffers(windowSurface);
+		SwapBuffers(gdiContext);
 		ValidateRect(window,nullptr);
 		InvalidateRect(window,nullptr,FALSE);
 		return 0;
@@ -122,6 +122,13 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 			return 0;
 		} // end switch
 		break;
+	case WM_KEYDOWN:
+		if(argW == VK_ESCAPE)
+		{
+			SendMessage(window,WM_CLOSE,0,0);
+			return 0;
+		} // end if
+		break;
 	case WM_COMMAND:
 		switch(LOWORD(argW))
 		{
@@ -130,7 +137,7 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 			return 0;
 		case IDM_EDIT_COPY:
 			GetClientRect(window,&r);
-			gdiBitmap = CreateCompatibleBitmap(windowSurface,r.right,r.bottom);
+			gdiBitmap = CreateCompatibleBitmap(gdiContext,r.right,r.bottom);
 			ZeroMemory(&pixelFormatDescription,sizeof(PIXELFORMATDESCRIPTOR));
 			pixelFormatDescription.nSize = sizeof(PIXELFORMATDESCRIPTOR);
 			pixelFormatDescription.nVersion = 1;
@@ -144,7 +151,7 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 			pixelFormatDescription.cAuxBuffers = 0;
 			pixelFormatDescription.iLayerType = PFD_MAIN_PLANE;
 
-			gdiMemContext = CreateCompatibleDC(windowSurface);
+			gdiMemContext = CreateCompatibleDC(gdiContext);
 			gdiBitmap = (HBITMAP)SelectObject(gdiMemContext,gdiBitmap);
 			pixelFormatIndex = ChoosePixelFormat(gdiMemContext,&pixelFormatDescription);
 			SetPixelFormat(gdiMemContext,pixelFormatIndex,&pixelFormatDescription);
@@ -162,7 +169,7 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 				SetClipboardData(CF_BITMAP,gdiBitmap);
 			CloseClipboard();
 
-			wglMakeCurrent(windowSurface,glContext);
+			wglMakeCurrent(gdiContext,glContext);
 			wglDeleteContext(glMemContext);
 			return 0;
 		case IDM_FILE_PRINT:
@@ -215,7 +222,7 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 						EndPage(gdiPrinterDC);
 						EndDoc(gdiPrinterDC);
 						gdiBitmap = (HBITMAP)SelectObject(gdiMemContext,gdiBitmap);
-					wglMakeCurrent(windowSurface,glContext);
+					wglMakeCurrent(gdiContext,glContext);
 					wglDeleteContext(glMemContext);
 					DeleteDC(gdiMemContext);
 					DeleteDC(gdiPrinterDC);
@@ -230,7 +237,7 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 	case WM_DESTROY:
 		wglDeleteContext(glContext);
 		DeleteDC(gdiMemContext);
-		//ReleaseDC(window,windowSurface);
+		//ReleaseDC(window,gdiContext);
 		PostQuitMessage(0);
 		return 0;
 	} // end switch
@@ -264,5 +271,4 @@ void display()
 	glTranslatef(0.5,-0.5,0);
 	glRotatef(angle,0,0,1);
 	glRectf(-1.0/3,-1.0/3,1.0/3,1.0/3);
-
 } // end function display
