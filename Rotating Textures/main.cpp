@@ -80,7 +80,7 @@ int main()
 	soleWindowClass.lpszClassName = _T("RotatingTexturesClass");
 	RegisterClass(&soleWindowClass);
 
-	HWND window = CreateWindow(_T("RotatingTexturesClass"),_T("Rotating Textures"),WS_POPUP|WS_THICKFRAME|WS_CLIPCHILDREN
+	HWND window = CreateWindow(_T("RotatingTexturesClass"),_T("Rotating Textures"),WS_POPUP|WS_THICKFRAME|WS_CLIPCHILDREN|WS_CAPTION|WS_SYSMENU
 									|WS_CLIPSIBLINGS,320,120,640,480,nullptr,nullptr,GetModuleHandle(nullptr),nullptr);
 
 	ShowWindow(window,SW_SHOWNORMAL);
@@ -171,7 +171,7 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 		wglMakeCurrent(gdiContext,glContext);
 		glewInit();
 
-		glClearColor(1,1,0.941,1);	// ivory
+		glClearColor(1,1,0.941f,1);	// ivory
 		glPixelStorei(GL_UNPACK_ALIGNMENT,4);
 		return 0;
 	case WM_SIZE:
@@ -298,7 +298,7 @@ end:
 			glMemContext = wglCreateContext(gdiMemContext);
 			wglMakeCurrent(gdiMemContext,glMemContext);
 
-			glClearColor(1,1,0.941,1);	// ivory
+			glClearColor(1,1,0.941f,1);	// ivory
 			glViewport(0,0,r.right,r.bottom);
 			display();
 			glFinish();	// essential!
@@ -318,7 +318,7 @@ end:
 			unsigned long requiredSize;
 			unsigned long nPrinters;
 			HDC gdiPrinterDC;
-			HGLRC glPrinterContext;
+			//HGLRC glPrinterContext;
 			DOCINFO di = {0};
 			di.cbSize = sizeof(di);
 			di.lpszDocName = _T("Test");
@@ -353,7 +353,7 @@ end:
 							glMemContext = wglCreateContext(gdiMemContext);
 							wglMakeCurrent(gdiMemContext,glMemContext);
 
-							glClearColor(1,1,0.941,1);	// ivory
+							glClearColor(1,1,0.941f,1);	// ivory
 							glViewport(0,0,GetDeviceCaps(gdiPrinterDC,HORZRES),GetDeviceCaps(gdiPrinterDC,VERTRES));
 							display();
 							glFinish();	// essential!
@@ -393,23 +393,23 @@ void display()
 	glLoadIdentity();
 	glTranslatef(0.5,0.5,0);
 	glRotatef(angle,0,0,1);
-	glRectf(-1.0/3,-1.0/3,1.0/3,1.0/3);
+	glRectf(-1.0f/3,-1.0f/3,1.0f/3,1.0f/3);
 
 	glColor3f(0,1,0);	// green
 	glLoadIdentity();
 	glTranslatef(-0.5,0.5,0);
 	glRotatef(angle,0,0,1);
-	glRectf(-1.0/3,-1.0/3,1.0/3,1.0/3);
+	glRectf(-1.0f/3,-1.0f/3,1.0f/3,1.0f/3);
 
 	glColor3f(0,0,1);	// blue
 	glLoadIdentity();
 	glTranslatef(-0.5,-0.5,0);
 	glRotatef(angle,0,0,1);
-	glRectf(-1.0/3,-1.0/3,1.0/3,1.0/3);
+	glRectf(-1.0f/3,-1.0f/3,1.0f/3,1.0f/3);
 
 	glColor3f(1,1,0);	// yellow
 	glLoadIdentity();
 	glTranslatef(0.5,-0.5,0);
 	glRotatef(angle,0,0,1);
-	glRectf(-1.0/3,-1.0/3,1.0/3,1.0/3);
+	glRectf(-1.0f/3,-1.0f/3,1.0f/3,1.0f/3);
 } // end function display
