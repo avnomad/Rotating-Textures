@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Documentation">
+      <UniqueIdentifier>{98bb5b5e-5b6f-4a14-ba05-899709ce95d7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -35,6 +38,12 @@
     </None>
     <None Include="crosshair.cur">
       <Filter>Resource Files</Filter>
+    </None>
+    <None Include="large todo list.jpg">
+      <Filter>Documentation</Filter>
+    </None>
+    <None Include="small todo list.jpg">
+      <Filter>Documentation</Filter>
     </None>
   </ItemGroup>
 </Project>

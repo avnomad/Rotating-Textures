@@ -72,6 +72,8 @@
   <ItemGroup>
     <None Include="crosshair.cur" />
     <None Include="icon.ico" />
+    <None Include="large todo list.jpg" />
+    <None Include="small todo list.jpg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
