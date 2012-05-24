@@ -107,6 +107,7 @@ float angle = 0; // in degrees
 
 LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM argL)
 {
+	static bool animating = true;
 	static PIXELFORMATDESCRIPTOR pixelFormatDescription = {0};
 	static HDC gdiContext;
 	static HGLRC glContext;
@@ -249,7 +250,8 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 		return 0;
 	case WM_PAINT:
 		display(textureIDs);
-		angle += 1.5;
+		if(animating)
+			angle += 1.5;
 		SwapBuffers(gdiContext);
 		ValidateRect(window,nullptr);
 		InvalidateRect(window,nullptr,FALSE);
@@ -275,6 +277,10 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 	case WM_COMMAND:
 		switch(LOWORD(argW))
 		{
+		case IDM_ANIMATION_PAUSE_RESUME:
+			animating = !animating;
+			ModifyMenu(GetMenu(window),IDM_ANIMATION_PAUSE_RESUME,MF_STRING,IDM_ANIMATION_PAUSE_RESUME,animating?_T("&Pause"):_T("&Resume"));
+			return 0;
 		case IDM_FILE_OPEN:
 			GetOpenFileName(&ofn);
 			SetWindowText(window,(windowTitle+_T(" - ")+ofn.lpstrFileTitle).c_str());
