@@ -123,7 +123,8 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 	static TCHAR fileName[maxFileNameSize];
 	static POINT oldMousePosition;
 	POINT mousePosition;
-	static Bitmap image;
+	static array<Bitmap,4> images;
+	static GLuint currentTexture = 0;
 	static const GLuint defaultTextureWidth = 3;
 	static const GLuint defaultTextureHeight = 3;
 	static GLubyte defaultTextures[4][defaultTextureWidth*defaultTextureHeight][3] = {
@@ -232,12 +233,6 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 		return 0;
 	case WM_PAINT:
 		display();
-		if(image.data.get() != nullptr)
-		{
-			glDisable(GL_TEXTURE_2D);
-			glDrawPixels(image.width,image.height,GL_BGR,GL_UNSIGNED_BYTE,image.data.get());
-			glEnable(GL_TEXTURE_2D);
-		} // end if
 		angle += 1.5;
 		SwapBuffers(gdiContext);
 		ValidateRect(window,nullptr);
@@ -268,7 +263,14 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 			GetOpenFileName(&ofn);
 			SetWindowText(window,(windowTitle+_T(" - ")+ofn.lpstrFileTitle).c_str());
 			try{
-				image = Bitmap(ofn.lpstrFile);
+				images[currentTexture] = Bitmap(ofn.lpstrFile);
+				glBindTexture(GL_TEXTURE_2D,textureIDs[currentTexture]);
+				glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,images[currentTexture].width,images[currentTexture].height,0,GL_BGR,GL_UNSIGNED_BYTE,images[currentTexture].data.get());
+				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_LINEAR);
+				glGenerateMipmap(GL_TEXTURE_2D);
+				if(++currentTexture >= textureIDs.size())
+					currentTexture = 0;
 			}catch(const runtime_error &e){
 				MessageBoxA(window,e.what(),"Error",MB_ICONERROR);
 			}
@@ -375,7 +377,6 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 	case WM_DESTROY:
 		wglDeleteContext(glContext);
 		DeleteDC(gdiMemContext);
-		image = Bitmap();	// set to a null image
 		//ReleaseDC(window,gdiContext);
 		PostQuitMessage(0);
 		return 0;
@@ -401,13 +402,13 @@ void display()
 		glTranslatef(rectanglePositions[i][0],rectanglePositions[i][1],0);
 		glRotatef(angle,0,0,1);
 		glBegin(GL_QUADS);
-			glTexCoord2f(0.0,1.0);
-			glVertex2f(-1.0f/3,-1.0f/3);
-			glTexCoord2f(1.0,1.0);
-			glVertex2f(1.0f/3,-1.0f/3);
-			glTexCoord2f(1.0,0.0);
-			glVertex2f(1.0f/3,1.0f/3);
 			glTexCoord2f(0.0,0.0);
+			glVertex2f(-1.0f/3,-1.0f/3);
+			glTexCoord2f(1.0,0.0);
+			glVertex2f(1.0f/3,-1.0f/3);
+			glTexCoord2f(1.0,1.0);
+			glVertex2f(1.0f/3,1.0f/3);
+			glTexCoord2f(0.0,1.0);
 			glVertex2f(-1.0f/3,1.0f/3);
 		glEnd();
 	} // end for
