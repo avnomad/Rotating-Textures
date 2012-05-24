@@ -38,6 +38,9 @@ using std::string;
 using std::wstring;
 using std::getline;
 
+#include <array>
+using std::array;
+
 #include <stdexcept>
 using std::runtime_error;
 
@@ -101,6 +104,8 @@ int main()
 void display();
 float angle = 0; // in degrees
 
+array<GLuint,4> textureIDs;
+
 LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM argL)
 {
 	static PIXELFORMATDESCRIPTOR pixelFormatDescription = {0};
@@ -119,6 +124,27 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 	static POINT oldMousePosition;
 	POINT mousePosition;
 	static Bitmap image;
+	static const GLuint defaultTextureWidth = 3;
+	static const GLuint defaultTextureHeight = 3;
+	static GLubyte defaultTextures[4][defaultTextureWidth*defaultTextureHeight][3] = {
+			// red-black check
+			{{255u,0,0},{   0,0,0},{255u,0,0},
+			 {   0,0,0},{255u,0,0},{   0,0,0},
+			 {255u,0,0},{   0,0,0},{255u,0,0}},
+			// green-black check
+			{{0,255u,0},{0,   0,0},{0,255u,0},
+			 {0,   0,0},{0,255u,0},{0,   0,0},
+			 {0,255u,0},{0,   0,0},{0,255u,0}},
+			// blue-black check
+			{{0,0,255u},{0,0,   0},{0,0,255u},
+			 {0,0,   0},{0,0,255u},{0,0,   0},
+			 {0,0,255u},{0,0,   0},{0,0,255u}},
+			// yellow-black check
+			{{255u,255u,0},{   0,   0,0},{255u,255u,0},
+			 {   0,   0,0},{255u,255u,0},{   0,   0,0},
+			 {255u,255u,0},{   0,   0,0},{255u,255u,0}},
+	};
+
 
 	switch(message)
 	{
@@ -166,7 +192,22 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 		wglMakeCurrent(gdiContext,glContext);
 		glewInit();
 
+		// OpenGL initialization
 		glClearColor(1,1,0.941f,1);	// ivory
+		glEnable(GL_TEXTURE_2D);
+		glGenTextures(textureIDs.size(),textureIDs.data());
+		glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_REPLACE);
+
+		glPixelStorei(GL_UNPACK_ALIGNMENT,1);
+		for(size_t i = 0 ; i < textureIDs.size() ; ++i)
+		{
+			glBindTexture(GL_TEXTURE_2D,textureIDs[i]);
+			glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,defaultTextureWidth,defaultTextureHeight,0,GL_RGB,GL_UNSIGNED_BYTE,defaultTextures[i]);
+			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST_MIPMAP_NEAREST);
+			glGenerateMipmap(GL_TEXTURE_2D);
+		} // end for
+
 		glPixelStorei(GL_UNPACK_ALIGNMENT,4);
 		return 0;
 	case WM_SIZE:
@@ -193,7 +234,9 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 		display();
 		if(image.data.get() != nullptr)
 		{
+			glDisable(GL_TEXTURE_2D);
 			glDrawPixels(image.width,image.height,GL_BGR,GL_UNSIGNED_BYTE,image.data.get());
+			glEnable(GL_TEXTURE_2D);
 		} // end if
 		angle += 1.5;
 		SwapBuffers(gdiContext);
@@ -344,27 +387,64 @@ void display()
 {
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	glColor3f(1,0,0);	// red
+	glBindTexture(GL_TEXTURE_2D,textureIDs[0]);
 	glLoadIdentity();
 	glTranslatef(0.5,0.5,0);
 	glRotatef(angle,0,0,1);
-	glRectf(-1.0f/3,-1.0f/3,1.0f/3,1.0f/3);
+	glBegin(GL_QUADS);
+		glTexCoord2f(0.0,1.0);
+		glVertex2f(-1.0f/3,-1.0f/3);
+		glTexCoord2f(1.0,1.0);
+		glVertex2f(1.0f/3,-1.0f/3);
+		glTexCoord2f(1.0,0.0);
+		glVertex2f(1.0f/3,1.0f/3);
+		glTexCoord2f(0.0,0.0);
+		glVertex2f(-1.0f/3,1.0f/3);
+	glEnd();
 
-	glColor3f(0,1,0);	// green
+	glBindTexture(GL_TEXTURE_2D,textureIDs[1]);
 	glLoadIdentity();
 	glTranslatef(-0.5,0.5,0);
 	glRotatef(angle,0,0,1);
 	glRectf(-1.0f/3,-1.0f/3,1.0f/3,1.0f/3);
+	glBegin(GL_QUADS);
+		glTexCoord2f(0.0,1.0);
+		glVertex2f(-1.0f/3,-1.0f/3);
+		glTexCoord2f(1.0,1.0);
+		glVertex2f(1.0f/3,-1.0f/3);
+		glTexCoord2f(1.0,0.0);
+		glVertex2f(1.0f/3,1.0f/3);
+		glTexCoord2f(0.0,0.0);
+		glVertex2f(-1.0f/3,1.0f/3);
+	glEnd();
 
-	glColor3f(0,0,1);	// blue
+	glBindTexture(GL_TEXTURE_2D,textureIDs[2]);
 	glLoadIdentity();
 	glTranslatef(-0.5,-0.5,0);
 	glRotatef(angle,0,0,1);
-	glRectf(-1.0f/3,-1.0f/3,1.0f/3,1.0f/3);
+	glBegin(GL_QUADS);
+		glTexCoord2f(0.0,1.0);
+		glVertex2f(-1.0f/3,-1.0f/3);
+		glTexCoord2f(1.0,1.0);
+		glVertex2f(1.0f/3,-1.0f/3);
+		glTexCoord2f(1.0,0.0);
+		glVertex2f(1.0f/3,1.0f/3);
+		glTexCoord2f(0.0,0.0);
+		glVertex2f(-1.0f/3,1.0f/3);
+	glEnd();
 
-	glColor3f(1,1,0);	// yellow
+	glBindTexture(GL_TEXTURE_2D,textureIDs[3]);
 	glLoadIdentity();
 	glTranslatef(0.5,-0.5,0);
 	glRotatef(angle,0,0,1);
-	glRectf(-1.0f/3,-1.0f/3,1.0f/3,1.0f/3);
+	glBegin(GL_QUADS);
+		glTexCoord2f(0.0,1.0);
+		glVertex2f(-1.0f/3,-1.0f/3);
+		glTexCoord2f(1.0,1.0);
+		glVertex2f(1.0f/3,-1.0f/3);
+		glTexCoord2f(1.0,0.0);
+		glVertex2f(1.0f/3,1.0f/3);
+		glTexCoord2f(0.0,0.0);
+		glVertex2f(-1.0f/3,1.0f/3);
+	glEnd();
 } // end function display
