@@ -385,66 +385,30 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 
 void display()
 {
+	static float rectanglePositions[4][2] = {
+		{ 0.5f, 0.5f},
+		{-0.5f, 0.5f},
+		{-0.5f,-0.5f},
+		{ 0.5f,-0.5f},
+	};
+
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	glBindTexture(GL_TEXTURE_2D,textureIDs[0]);
-	glLoadIdentity();
-	glTranslatef(0.5,0.5,0);
-	glRotatef(angle,0,0,1);
-	glBegin(GL_QUADS);
-		glTexCoord2f(0.0,1.0);
-		glVertex2f(-1.0f/3,-1.0f/3);
-		glTexCoord2f(1.0,1.0);
-		glVertex2f(1.0f/3,-1.0f/3);
-		glTexCoord2f(1.0,0.0);
-		glVertex2f(1.0f/3,1.0f/3);
-		glTexCoord2f(0.0,0.0);
-		glVertex2f(-1.0f/3,1.0f/3);
-	glEnd();
-
-	glBindTexture(GL_TEXTURE_2D,textureIDs[1]);
-	glLoadIdentity();
-	glTranslatef(-0.5,0.5,0);
-	glRotatef(angle,0,0,1);
-	glRectf(-1.0f/3,-1.0f/3,1.0f/3,1.0f/3);
-	glBegin(GL_QUADS);
-		glTexCoord2f(0.0,1.0);
-		glVertex2f(-1.0f/3,-1.0f/3);
-		glTexCoord2f(1.0,1.0);
-		glVertex2f(1.0f/3,-1.0f/3);
-		glTexCoord2f(1.0,0.0);
-		glVertex2f(1.0f/3,1.0f/3);
-		glTexCoord2f(0.0,0.0);
-		glVertex2f(-1.0f/3,1.0f/3);
-	glEnd();
-
-	glBindTexture(GL_TEXTURE_2D,textureIDs[2]);
-	glLoadIdentity();
-	glTranslatef(-0.5,-0.5,0);
-	glRotatef(angle,0,0,1);
-	glBegin(GL_QUADS);
-		glTexCoord2f(0.0,1.0);
-		glVertex2f(-1.0f/3,-1.0f/3);
-		glTexCoord2f(1.0,1.0);
-		glVertex2f(1.0f/3,-1.0f/3);
-		glTexCoord2f(1.0,0.0);
-		glVertex2f(1.0f/3,1.0f/3);
-		glTexCoord2f(0.0,0.0);
-		glVertex2f(-1.0f/3,1.0f/3);
-	glEnd();
-
-	glBindTexture(GL_TEXTURE_2D,textureIDs[3]);
-	glLoadIdentity();
-	glTranslatef(0.5,-0.5,0);
-	glRotatef(angle,0,0,1);
-	glBegin(GL_QUADS);
-		glTexCoord2f(0.0,1.0);
-		glVertex2f(-1.0f/3,-1.0f/3);
-		glTexCoord2f(1.0,1.0);
-		glVertex2f(1.0f/3,-1.0f/3);
-		glTexCoord2f(1.0,0.0);
-		glVertex2f(1.0f/3,1.0f/3);
-		glTexCoord2f(0.0,0.0);
-		glVertex2f(-1.0f/3,1.0f/3);
-	glEnd();
+	for(size_t i = 0 ; i < textureIDs.size() ; ++i)
+	{
+		glBindTexture(GL_TEXTURE_2D,textureIDs[i]);
+		glLoadIdentity();
+		glTranslatef(rectanglePositions[i][0],rectanglePositions[i][1],0);
+		glRotatef(angle,0,0,1);
+		glBegin(GL_QUADS);
+			glTexCoord2f(0.0,1.0);
+			glVertex2f(-1.0f/3,-1.0f/3);
+			glTexCoord2f(1.0,1.0);
+			glVertex2f(1.0f/3,-1.0f/3);
+			glTexCoord2f(1.0,0.0);
+			glVertex2f(1.0f/3,1.0f/3);
+			glTexCoord2f(0.0,0.0);
+			glVertex2f(-1.0f/3,1.0f/3);
+		glEnd();
+	} // end for
 } // end function display
