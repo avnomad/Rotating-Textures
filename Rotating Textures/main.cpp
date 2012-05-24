@@ -194,8 +194,9 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 		wglMakeCurrent(gdiContext,glContext);
 		glewInit();
 
-		cout << glGetString(GL_VENDOR) << endl;
-		cout << glGetString(GL_VERSION) << endl;
+		cout << "Initializing on screen renderer.\n";
+		cout << "Vendor:  " << glGetString(GL_VENDOR)  << "\n";
+		cout << "Version: " << glGetString(GL_VERSION) << "\n" << endl;
 
 		// OpenGL context initialization
 		glClearColor(1,1,0.941f,1);	// ivory
@@ -302,15 +303,16 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 			glMemContext = wglCreateContext(gdiMemContext);
 			wglMakeCurrent(gdiMemContext,glMemContext);
 
-			cout << glGetString(GL_VENDOR) << endl;
-			cout << glGetString(GL_VERSION) << endl;
+			cout << "Initializing memory renderer.\n";
+			cout << "Vendor:  " << glGetString(GL_VENDOR)  << "\n";
+			cout << "Version: " << glGetString(GL_VERSION) << "\n" << endl;
 
 			// OpenGL context initialization
 			glClearColor(1,1,0.941f,1);	// ivory
 			glEnable(GL_TEXTURE_2D);
 			glGenTextures(memTextureIDs.size(),memTextureIDs.data());
 			glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_REPLACE);
-			
+
 			glPixelStorei(GL_UNPACK_ALIGNMENT,4);
 			for(size_t i = 0 ; i < textureIDs.size() ; ++i)
 			{
@@ -374,7 +376,25 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 							glMemContext = wglCreateContext(gdiMemContext);
 							wglMakeCurrent(gdiMemContext,glMemContext);
 
+							cout << "Initializing memory renderer.\n";
+							cout << "Vendor:  " << glGetString(GL_VENDOR)  << "\n";
+							cout << "Version: " << glGetString(GL_VERSION) << "\n" << endl;
+
+							// OpenGL context initialization
 							glClearColor(1,1,0.941f,1);	// ivory
+							glEnable(GL_TEXTURE_2D);
+							glGenTextures(memTextureIDs.size(),memTextureIDs.data());
+							glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_REPLACE);
+
+							glPixelStorei(GL_UNPACK_ALIGNMENT,4);
+							for(size_t i = 0 ; i < textureIDs.size() ; ++i)
+							{
+								glBindTexture(GL_TEXTURE_2D,memTextureIDs[i]);
+								gluBuild2DMipmaps(GL_TEXTURE_2D,GL_RGB,images[i].width,images[i].height,GL_BGR,GL_UNSIGNED_BYTE,images[i].data.get());
+								glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+								glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_LINEAR);
+							} // end for
+
 							glViewport(0,0,GetDeviceCaps(gdiPrinterDC,HORZRES),GetDeviceCaps(gdiPrinterDC,VERTRES));
 							display(memTextureIDs);
 							glFinish();	// essential!
