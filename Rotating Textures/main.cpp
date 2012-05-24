@@ -315,15 +315,10 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 			for(size_t i = 0 ; i < textureIDs.size() ; ++i)
 			{
 				glBindTexture(GL_TEXTURE_2D,memTextureIDs[i]);
-				glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,images[currentTexture].width,images[currentTexture].height,0,GL_BGR,GL_UNSIGNED_BYTE,images[currentTexture].data.get());
+				gluBuild2DMipmaps(GL_TEXTURE_2D,GL_RGB,images[i].width,images[i].height,GL_BGR,GL_UNSIGNED_BYTE,images[i].data.get());
 				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
 				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_LINEAR);
-				glGenerateMipmap(GL_TEXTURE_2D);
 			} // end for
-
-			cout << GL_NO_ERROR << endl;
-			cout << glGetError() << endl;
-
 
 			glViewport(0,0,r.right,r.bottom);
 			display(memTextureIDs);
