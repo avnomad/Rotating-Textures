@@ -126,27 +126,12 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 	static array<GLuint,4> memTextureIDs;
 	static array<Bitmap,4> images;
 	static GLuint currentTexture = 0;
-	static const GLuint defaultTextureWidth = 3;
-	static const GLuint defaultTextureHeight = 3;
-	static GLubyte defaultTextures[4][defaultTextureWidth*defaultTextureHeight][3] = {
-			// red-black check
-			{{255u,0,0},{   0,0,0},{255u,0,0},
-			 {   0,0,0},{255u,0,0},{   0,0,0},
-			 {255u,0,0},{   0,0,0},{255u,0,0}},
-			// green-black check
-			{{0,255u,0},{0,   0,0},{0,255u,0},
-			 {0,   0,0},{0,255u,0},{0,   0,0},
-			 {0,255u,0},{0,   0,0},{0,255u,0}},
-			// blue-black check
-			{{0,0,255u},{0,0,   0},{0,0,255u},
-			 {0,0,   0},{0,0,255u},{0,0,   0},
-			 {0,0,255u},{0,0,   0},{0,0,255u}},
-			// yellow-black check
-			{{255u,255u,0},{   0,   0,0},{255u,255u,0},
-			 {   0,   0,0},{255u,255u,0},{   0,   0,0},
-			 {255u,255u,0},{   0,   0,0},{255u,255u,0}},
+	static GLubyte checkColors[4][3] = {
+		{255u,   0,   0},	// red
+		{   0,255u,   0},	// green
+		{   0,   0,255u},	// blue
+		{255u,255u,   0}	// yellow
 	};
-
 
 	switch(message)
 	{
@@ -187,6 +172,32 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 		pixelFormatDescription.cAuxBuffers = 128;
 		pixelFormatDescription.iLayerType = PFD_MAIN_PLANE;
 
+		for(size_t k = 0 ; k < images.size() ; ++k)
+		{
+			images[k].width  = 4;
+			images[k].height = 4;
+			images[k].data.reset(new unsigned char[images[k].width*images[k].height*3]);
+			for(size_t i = 0 ; i < images[k].height ; ++i)
+			{
+				for(size_t j = 0 ; j < images[k].width ; ++j)
+				{
+					if((i + j) % 2 == 0)
+					{
+						images[k].data.get()[(i*images[k].width+j)*3  ] = checkColors[k][0];
+						images[k].data.get()[(i*images[k].width+j)*3+1] = checkColors[k][1];
+						images[k].data.get()[(i*images[k].width+j)*3+2] = checkColors[k][2];
+					}
+					else
+					{
+						images[k].data.get()[(i*images[k].width+j)*3  ] = 0;
+						images[k].data.get()[(i*images[k].width+j)*3+1] = 0;
+						images[k].data.get()[(i*images[k].width+j)*3+2] = 0;
+					} // end else
+				} // end for
+			} // end for
+		} // end for
+
+
 		gdiContext = GetDC(window);
 		pixelFormatIndex = ChoosePixelFormat(gdiContext,&pixelFormatDescription);
 		SetPixelFormat(gdiContext,pixelFormatIndex,&pixelFormatDescription);
@@ -208,7 +219,7 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 		for(size_t i = 0 ; i < textureIDs.size() ; ++i)
 		{
 			glBindTexture(GL_TEXTURE_2D,textureIDs[i]);
-			glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,defaultTextureWidth,defaultTextureHeight,0,GL_RGB,GL_UNSIGNED_BYTE,defaultTextures[i]);
+			glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,images[i].width,images[i].height,0,GL_RGB,GL_UNSIGNED_BYTE,images[i].data.get());
 			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
 			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST_MIPMAP_NEAREST);
 			glGenerateMipmap(GL_TEXTURE_2D);
@@ -344,7 +355,7 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 			//HGLRC glPrinterContext;
 			DOCINFO di = {0};
 			di.cbSize = sizeof(di);
-			di.lpszDocName = _T("Test");
+			di.lpszDocName = _T("Rotating Textures Capture");
 
 			EnumPrinters(PRINTER_ENUM_LOCAL,nullptr,4,nullptr,0,&requiredSize,&nPrinters);	// get required size.
 			BYTE *printers = new BYTE[requiredSize];
