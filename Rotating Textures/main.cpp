@@ -101,10 +101,9 @@ int main()
 	return message.wParam;
 } // end function main
 
-void display();
+void display(const array<GLuint,4> &textureIDs);
 float angle = 0; // in degrees
 
-array<GLuint,4> textureIDs;
 
 LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM argL)
 {
@@ -123,6 +122,8 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 	static TCHAR fileName[maxFileNameSize];
 	static POINT oldMousePosition;
 	POINT mousePosition;
+	static array<GLuint,4> textureIDs;
+	static array<GLuint,4> memTextureIDs;
 	static array<Bitmap,4> images;
 	static GLuint currentTexture = 0;
 	static const GLuint defaultTextureWidth = 3;
@@ -193,7 +194,10 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 		wglMakeCurrent(gdiContext,glContext);
 		glewInit();
 
-		// OpenGL initialization
+		cout << glGetString(GL_VENDOR) << endl;
+		cout << glGetString(GL_VERSION) << endl;
+
+		// OpenGL context initialization
 		glClearColor(1,1,0.941f,1);	// ivory
 		glEnable(GL_TEXTURE_2D);
 		glGenTextures(textureIDs.size(),textureIDs.data());
@@ -232,7 +236,7 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 		ReleaseCapture();
 		return 0;
 	case WM_PAINT:
-		display();
+		display(textureIDs);
 		angle += 1.5;
 		SwapBuffers(gdiContext);
 		ValidateRect(window,nullptr);
@@ -298,9 +302,31 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 			glMemContext = wglCreateContext(gdiMemContext);
 			wglMakeCurrent(gdiMemContext,glMemContext);
 
+			cout << glGetString(GL_VENDOR) << endl;
+			cout << glGetString(GL_VERSION) << endl;
+
+			// OpenGL context initialization
 			glClearColor(1,1,0.941f,1);	// ivory
+			glEnable(GL_TEXTURE_2D);
+			glGenTextures(memTextureIDs.size(),memTextureIDs.data());
+			glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_REPLACE);
+			
+			glPixelStorei(GL_UNPACK_ALIGNMENT,4);
+			for(size_t i = 0 ; i < textureIDs.size() ; ++i)
+			{
+				glBindTexture(GL_TEXTURE_2D,memTextureIDs[i]);
+				glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,images[currentTexture].width,images[currentTexture].height,0,GL_BGR,GL_UNSIGNED_BYTE,images[currentTexture].data.get());
+				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_LINEAR);
+				glGenerateMipmap(GL_TEXTURE_2D);
+			} // end for
+
+			cout << GL_NO_ERROR << endl;
+			cout << glGetError() << endl;
+
+
 			glViewport(0,0,r.right,r.bottom);
-			display();
+			display(memTextureIDs);
 			glFinish();	// essential!
 			gdiBitmap = (HBITMAP)SelectObject(gdiMemContext,gdiBitmap);
 
@@ -355,7 +381,7 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 
 							glClearColor(1,1,0.941f,1);	// ivory
 							glViewport(0,0,GetDeviceCaps(gdiPrinterDC,HORZRES),GetDeviceCaps(gdiPrinterDC,VERTRES));
-							display();
+							display(memTextureIDs);
 							glFinish();	// essential!
 
 							BitBlt(gdiPrinterDC,0,0,GetDeviceCaps(gdiPrinterDC,HORZRES),GetDeviceCaps(gdiPrinterDC,VERTRES),gdiMemContext,0,0,SRCCOPY);
@@ -384,7 +410,7 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 	return DefWindowProc(window,message,argW,argL);
 } // end function soleWindowProcedure
 
-void display()
+void display(const array<GLuint,4> &textureIDs)
 {
 	static float rectanglePositions[4][2] = {
 		{ 0.5f, 0.5f},
