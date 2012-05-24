@@ -38,11 +38,8 @@ using std::string;
 using std::wstring;
 using std::getline;
 
-#include <fstream>
-using std::ifstream;
-using std::ofstream;
-using std::fstream;
-using std::ios;
+#include <stdexcept>
+using std::runtime_error;
 
 #include <GL/glew.h>
 #include <GL/glut.h>
@@ -60,6 +57,7 @@ typedef string tstring;
 #endif
 
 #include "resource.h"
+#include "bitmap.h"
 
 LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM argL);
 
@@ -120,10 +118,7 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 	static TCHAR fileName[maxFileNameSize];
 	static POINT oldMousePosition;
 	POINT mousePosition;
-	static ifstream in;
-	static BYTE *image = nullptr;
-	static BITMAPFILEHEADER fileHeader;
-	static BITMAPINFOHEADER infoHeader;
+	static Bitmap image;
 
 	switch(message)
 	{
@@ -196,9 +191,9 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 		return 0;
 	case WM_PAINT:
 		display();
-		if(image != nullptr)
+		if(image.data.get() != nullptr)
 		{
-			glDrawPixels(infoHeader.biWidth,infoHeader.biHeight,GL_BGR,GL_UNSIGNED_BYTE,image);
+			glDrawPixels(image.width,image.height,GL_BGR,GL_UNSIGNED_BYTE,image.data.get());
 		} // end if
 		angle += 1.5;
 		SwapBuffers(gdiContext);
@@ -229,51 +224,11 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 		case IDM_FILE_OPEN:
 			GetOpenFileName(&ofn);
 			SetWindowText(window,(windowTitle+_T(" - ")+ofn.lpstrFileTitle).c_str());
-			in.open(ofn.lpstrFile,ios::binary|ios::in);
-			if(in)
-			{
-				int size;
-
-				in.read((char*)&fileHeader,sizeof(fileHeader));
-				if(!in)
-				{
-					MessageBox(window,_T("Could not read the entire file header!"),_T("Error"),MB_ICONERROR);
-					goto end;
-				} // end if
-				in.read((char*)&infoHeader,sizeof(infoHeader));
-				if(!in)
-				{
-					MessageBox(window,_T("Could not read the entire info header!"),_T("Error"),MB_ICONERROR);
-					goto end;
-				} // end if
-				if(fileHeader.bfType != *(WORD*)"BM")
-				{
-					MessageBox(window,_T("Magic Number not \"MP\"!"),_T("Error"),MB_ICONERROR);
-					goto end;
-				} // end if
-				if(infoHeader.biSize != sizeof(infoHeader))
-				{
-					MessageBox(window,_T("Unsupported DIB version!"),_T("Error"),MB_ICONERROR);
-					goto end;
-				} // end if
-				if(fileHeader.bfOffBits != sizeof(fileHeader)+sizeof(infoHeader))
-				{
-					MessageBox(window,_T("Masks or Color table present!"),_T("Error"),MB_ICONERROR);
-					goto end;
-				} // end if
-
-				// more error checking goes here...
-
-				size = fileHeader.bfSize - fileHeader.bfOffBits;
-				delete[] image;
-				image = new BYTE[size];
-				in.read((char*)image,size);
+			try{
+				image = Bitmap(ofn.lpstrFile);
+			}catch(const runtime_error &e){
+				MessageBoxA(window,e.what(),"Error",MB_ICONERROR);
 			}
-			else
-				MessageBox(window,_T("Could not open file!"),_T("Error"),MB_ICONERROR);
-end:
-			in.close();
-			in.clear();
 			return 0;
 		case IDM_EDIT_COPY:
 			GetClientRect(window,&r);
@@ -377,7 +332,7 @@ end:
 	case WM_DESTROY:
 		wglDeleteContext(glContext);
 		DeleteDC(gdiMemContext);
-		delete[] image;
+		image = Bitmap();	// set to a null image
 		//ReleaseDC(window,gdiContext);
 		PostQuitMessage(0);
 		return 0;
