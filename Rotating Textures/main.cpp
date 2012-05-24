@@ -133,6 +133,7 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 		{   0,   0,255u},	// blue
 		{255u,255u,   0}	// yellow
 	};
+	static bool linearFiltering;
 
 	switch(message)
 	{
@@ -184,9 +185,9 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 				{
 					if((i + j) % 2 == 0)
 					{
-						images[k].data.get()[(i*images[k].width+j)*3  ] = checkColors[k][0];
+						images[k].data.get()[(i*images[k].width+j)*3  ] = checkColors[k][2];	// BGR not RGB
 						images[k].data.get()[(i*images[k].width+j)*3+1] = checkColors[k][1];
-						images[k].data.get()[(i*images[k].width+j)*3+2] = checkColors[k][2];
+						images[k].data.get()[(i*images[k].width+j)*3+2] = checkColors[k][0];
 					}
 					else
 					{
@@ -220,7 +221,7 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 		for(size_t i = 0 ; i < textureIDs.size() ; ++i)
 		{
 			glBindTexture(GL_TEXTURE_2D,textureIDs[i]);
-			glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,images[i].width,images[i].height,0,GL_RGB,GL_UNSIGNED_BYTE,images[i].data.get());
+			glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,images[i].width,images[i].height,0,GL_BGR,GL_UNSIGNED_BYTE,images[i].data.get());
 			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
 			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST_MIPMAP_NEAREST);
 			glGenerateMipmap(GL_TEXTURE_2D);
@@ -281,6 +282,28 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 			animating = !animating;
 			ModifyMenu(GetMenu(window),IDM_ANIMATION_PAUSE_RESUME,MF_STRING,IDM_ANIMATION_PAUSE_RESUME,animating?_T("&Pause"):_T("&Resume"));
 			return 0;
+		case IDM_FILTER_LINEAR:
+			linearFiltering = true;
+			CheckMenuItem(GetMenu(window),IDM_FILTER_LINEAR,MF_CHECKED);
+			CheckMenuItem(GetMenu(window),IDM_FILTER_NEAREST,MF_UNCHECKED);
+			for(size_t i = 0 ; i < textureIDs.size() ; ++i)
+			{
+				glBindTexture(GL_TEXTURE_2D,textureIDs[i]);
+				glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_LINEAR);
+			} // for
+			return 0;
+		case IDM_FILTER_NEAREST:
+			linearFiltering = false;
+			CheckMenuItem(GetMenu(window),IDM_FILTER_LINEAR,MF_UNCHECKED);
+			CheckMenuItem(GetMenu(window),IDM_FILTER_NEAREST,MF_CHECKED);
+			for(size_t i = 0 ; i < textureIDs.size() ; ++i)
+			{
+				glBindTexture(GL_TEXTURE_2D,textureIDs[i]);
+				glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST_MIPMAP_NEAREST);
+			} // for
+			return 0;
 		case IDM_FILE_OPEN:
 			GetOpenFileName(&ofn);
 			SetWindowText(window,(windowTitle+_T(" - ")+ofn.lpstrFileTitle).c_str());
@@ -288,8 +311,6 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 				images[currentTexture] = Bitmap(ofn.lpstrFile);
 				glBindTexture(GL_TEXTURE_2D,textureIDs[currentTexture]);
 				glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,images[currentTexture].width,images[currentTexture].height,0,GL_BGR,GL_UNSIGNED_BYTE,images[currentTexture].data.get());
-				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_LINEAR);
 				glGenerateMipmap(GL_TEXTURE_2D);
 				if(++currentTexture >= textureIDs.size())
 					currentTexture = 0;
@@ -335,8 +356,8 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 			{
 				glBindTexture(GL_TEXTURE_2D,memTextureIDs[i]);
 				gluBuild2DMipmaps(GL_TEXTURE_2D,GL_RGB,images[i].width,images[i].height,GL_BGR,GL_UNSIGNED_BYTE,images[i].data.get());
-				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,linearFiltering?GL_LINEAR:GL_NEAREST);
+				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,linearFiltering?GL_LINEAR_MIPMAP_LINEAR:GL_NEAREST_MIPMAP_NEAREST);
 			} // end for
 
 			glViewport(0,0,r.right,r.bottom);
@@ -408,8 +429,8 @@ LRESULT CALLBACK soleWindowProcedure(HWND window,UINT message,WPARAM argW,LPARAM
 							{
 								glBindTexture(GL_TEXTURE_2D,memTextureIDs[i]);
 								gluBuild2DMipmaps(GL_TEXTURE_2D,GL_RGB,images[i].width,images[i].height,GL_BGR,GL_UNSIGNED_BYTE,images[i].data.get());
-								glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-								glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_LINEAR);
+								glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,linearFiltering?GL_LINEAR:GL_NEAREST);
+								glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,linearFiltering?GL_LINEAR_MIPMAP_LINEAR:GL_NEAREST_MIPMAP_NEAREST);
 							} // end for
 
 							glViewport(0,0,GetDeviceCaps(gdiPrinterDC,HORZRES),GetDeviceCaps(gdiPrinterDC,VERTRES));
